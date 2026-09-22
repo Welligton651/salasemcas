@@ -85,11 +85,11 @@
             <div class="flex flex-col gap-4">
                 <div>
                     <label class="text-sm text-slate-400">Usuário:</label>
-                    <input type="text" id="loginUser" class="w-full bg-slate-900 border border-slate-600 text-white rounded-lg p-3 outline-none focus:border-blue-500 transition-all" placeholder="nome">
+                    <input type="text" id="loginUser" class="w-full bg-slate-900 border border-slate-600 text-white rounded-lg p-3 outline-none focus:border-blue-500 transition-all" placeholder="welligton">
                 </div>
                 <div>
                     <label class="text-sm text-slate-400">Senha:</label>
-                    <input type="password" id="loginPass" class="w-full bg-slate-900 border border-slate-600 text-white rounded-lg p-3 outline-none focus:border-blue-500 transition-all" placeholder="senha">
+                    <input type="password" id="loginPass" class="w-full bg-slate-900 border border-slate-600 text-white rounded-lg p-3 outline-none focus:border-blue-500 transition-all" placeholder="0205">
                 </div>
                 <button onclick="doLogin()" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 rounded-lg transition-colors shadow-md">
                     Entrar
@@ -327,6 +327,34 @@
         // Variável de Segurança
         let cameraPassword = "";
 
+        // Configuração de Servidores STUN/TURN para funcionar no 4G/Dados Móveis
+        const peerConfig = {
+            config: {
+                'iceServers': [
+                    { urls: 'stun:stun.l.google.com:19302' },
+                    { urls: 'stun:stun1.l.google.com:19302' },
+                    { urls: 'stun:stun2.l.google.com:19302' },
+                    { urls: 'stun:stun3.l.google.com:19302' },
+                    { urls: 'stun:stun4.l.google.com:19302' },
+                    {
+                        urls: 'turn:openrelay.metered.ca:80',
+                        username: 'openrelayproject',
+                        credential: 'openrelayproject'
+                    },
+                    {
+                        urls: 'turn:openrelay.metered.ca:443',
+                        username: 'openrelayproject',
+                        credential: 'openrelayproject'
+                    },
+                    {
+                        urls: 'turn:openrelay.metered.ca:443?transport=tcp',
+                        username: 'openrelayproject',
+                        credential: 'openrelayproject'
+                    }
+                ]
+            }
+        };
+
         // ---------------------------------------------------------
         // GERENCIAMENTO DE MODO (CAMERA VS MONITOR)
         // ---------------------------------------------------------
@@ -368,10 +396,16 @@
             
             updateStatus('Iniciando Câmera...', 'bg-yellow-500');
             
-            // 1. Pega o vídeo da webcam do PC (Bloco Isolado)
+            // 1. Pega o vídeo da webcam do PC (Bloco Isolado - OTIMIZADO PARA 4G)
             try {
+                // Reduzimos a resolução e os frames (FPS) para o vídeo "escorregar" mais leve pelo 4G
                 localStream = await navigator.mediaDevices.getUserMedia({ 
-                    video: { width: { ideal: 1280 }, height: { ideal: 720 }, facingMode: "environment" }, 
+                    video: { 
+                        width: { ideal: 640 }, 
+                        height: { ideal: 480 }, 
+                        frameRate: { ideal: 15, max: 24 }, // Limita os frames para poupar dados
+                        facingMode: "environment" 
+                    }, 
                     audio: true 
                 });
                 
@@ -393,7 +427,8 @@
                 
                 document.getElementById('displayCameraId').textContent = shortId;
 
-                peer = new Peer(fullId);
+                // Usa as novas configurações de STUN/TURN
+                peer = new Peer(fullId, peerConfig);
 
                 peer.on('open', (id) => {
                     updateStatus('Transmitindo (Protegido)', 'bg-blue-500');
@@ -431,14 +466,18 @@
 
                 peer.on('error', (err) => {
                     console.error("Erro PeerJS:", err);
-                    updateStatus('Erro na rede P2P', 'bg-red-500');
+                    updateStatus('Erro: ' + err.type, 'bg-red-500');
                     
-                    // Tratamento específico para o erro de WebSocket no Preview
                     if (String(err).includes('Canvas') || String(err).includes('WebSocket') || err.type === 'browser-incompatible') {
                         document.getElementById('displayCameraId').innerHTML = '<span class="text-red-400 text-xl">Preview Bloqueado</span>';
-                        alert("O ambiente de Preview bloqueia a conexão WebRTC. A câmera ligou, mas a transmissão só funcionará no seu site hospedado!");
+                    } else if (err.type === 'unavailable-id') {
+                        // O código 4556 ficou preso na sessão anterior
+                        document.getElementById('displayCameraId').innerHTML = '<span class="text-yellow-400 text-lg">ID Ocupado</span>';
+                        alert("O código da câmera está preso em outra aba que não foi fechada direito. Feche outras abas deste site, aguarde 30 segundos e recarregue a página.");
+                    } else if (err.type === 'network' || err.type === 'server-error') {
+                        alert("Erro no servidor de sinalização (" + err.type + "). Pode ser instabilidade na internet ou algum Antivírus/AdBlock bloqueando o site.");
                     } else {
-                        alert("Erro de conexão. Verifique sua rede.");
+                        alert("Erro de conexão (" + err.type + "). Verifique sua rede.");
                     }
                 });
 
@@ -461,8 +500,8 @@
             document.getElementById('inputMonitorPassword').value = savedPass;
             
             try {
-                // Inicializa Peer sem ID específico (ID dinâmico)
-                peer = new Peer();
+                // Inicializa Peer sem ID específico (ID dinâmico) usando STUN/TURN
+                peer = new Peer(peerConfig);
                 
                 peer.on('open', (id) => {
                     console.log("Monitor registrado na rede com ID:", id);
@@ -700,6 +739,13 @@
         });
         document.getElementById('loginPass').addEventListener('keypress', function (e) {
             if (e.key === 'Enter') doLogin();
+        });
+
+        // Libera o ID da câmera quando o usuário fechar ou recarregar a aba do PC
+        window.addEventListener('beforeunload', () => {
+            if (peer) {
+                peer.destroy();
+            }
         });
 
     </script>
