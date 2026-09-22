@@ -65,15 +65,40 @@
                 <i class="fa-solid fa-network-wired"></i> WebDVR Remoto
             </h1>
             <div class="text-sm text-slate-400 flex items-center gap-2">
+                <button id="btnInstall" class="hidden bg-blue-600 hover:bg-blue-700 text-white px-3 py-1 rounded text-xs font-bold transition-colors shadow-lg">
+                    <i class="fa-solid fa-download"></i> Instalar App
+                </button>
                 <span id="statusIndicator" class="w-3 h-3 rounded-full bg-slate-500"></span>
                 <span id="statusText">Aguardando Seleção</span>
+                <button id="btnLogout" onclick="logout()" class="hidden ml-2 text-slate-400 hover:text-red-400 transition-colors" title="Sair">
+                    <i class="fa-solid fa-right-from-bracket"></i>
+                </button>
             </div>
         </div>
     </header>
 
     <main class="flex-grow container mx-auto p-4 flex flex-col items-center justify-center gap-6">
 
-        <div id="screenSelection" class="w-full max-w-2xl bg-slate-800 p-8 rounded-2xl border border-slate-700 shadow-2xl text-center flex flex-col gap-6">
+        <!-- Tela de Login (Nova) -->
+        <div id="screenLogin" class="w-full max-w-md bg-slate-800 p-8 rounded-2xl border border-slate-700 shadow-2xl flex flex-col gap-6">
+            <h2 class="text-2xl font-bold text-white text-center">Acesso Restrito</h2>
+            <div class="flex flex-col gap-4">
+                <div>
+                    <label class="text-sm text-slate-400">Usuário:</label>
+                    <input type="text" id="loginUser" class="w-full bg-slate-900 border border-slate-600 text-white rounded-lg p-3 outline-none focus:border-blue-500 transition-all" placeholder="nome">
+                </div>
+                <div>
+                    <label class="text-sm text-slate-400">Senha:</label>
+                    <input type="password" id="loginPass" class="w-full bg-slate-900 border border-slate-600 text-white rounded-lg p-3 outline-none focus:border-blue-500 transition-all" placeholder="senha">
+                </div>
+                <button onclick="doLogin()" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 rounded-lg transition-colors shadow-md">
+                    Entrar
+                </button>
+                <div id="loginError" class="text-red-400 text-sm text-center hidden">Credenciais incorretas!</div>
+            </div>
+        </div>
+
+        <div id="screenSelection" class="w-full max-w-2xl bg-slate-800 p-8 rounded-2xl border border-slate-700 shadow-2xl text-center hidden flex-col gap-6">
             <h2 class="text-2xl font-bold text-white mb-2">Como você quer usar este dispositivo?</h2>
             
             <div class="grid md:grid-cols-2 gap-4">
@@ -101,17 +126,33 @@
 
         <div id="screenCamera" class="w-full flex flex-col items-center hidden gap-4">
             
-            <div class="bg-blue-900/30 border border-blue-500/50 p-4 rounded-xl text-center w-full max-w-3xl">
-                <p class="text-slate-300 text-sm mb-1">Seu Código de Acesso:</p>
-                <div class="text-4xl font-mono font-bold text-blue-400 tracking-widest" id="displayCameraId">----</div>
-                <p class="text-slate-400 text-xs mt-2"><i class="fa-solid fa-info-circle"></i> Digite este código no outro dispositivo para acessar esta câmera.</p>
+            <!-- Setup da Câmera (Novo) -->
+            <div id="cameraSetupPanel" class="bg-slate-800 p-6 rounded-xl border border-slate-700 shadow-lg w-full max-w-md flex flex-col gap-4">
+                <h3 class="text-lg font-bold text-center">Configurar Segurança</h3>
+                <p class="text-sm text-slate-400 text-center">Crie uma senha para proteger o acesso à sua câmera.</p>
+                <div class="flex flex-col gap-2">
+                    <label for="inputCameraConfigPassword" class="text-sm text-slate-400">Senha de Proteção:</label>
+                    <input type="password" id="inputCameraConfigPassword" class="bg-slate-900 border border-slate-600 text-white rounded-lg p-3 outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-all" placeholder="Ex: segredo123">
+                </div>
+                <button onclick="startCameraTransmission()" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 rounded-lg transition-colors flex items-center justify-center gap-2 shadow-md">
+                    <i class="fa-solid fa-video"></i> Iniciar Transmissão
+                </button>
             </div>
 
-            <div class="video-container">
-                <video id="localVideo" autoplay playsinline muted></video>
-                <div id="cameraOverlay" class="absolute inset-0 flex flex-col items-center justify-center bg-slate-900/80 text-slate-400">
-                    <i class="fa-solid fa-spinner fa-spin text-4xl mb-2"></i>
-                    <p>Iniciando Câmera...</p>
+            <!-- Área de Transmissão (Oculta até configurar a senha) -->
+            <div id="cameraActiveArea" class="w-full flex-col items-center hidden gap-4">
+                <div class="bg-blue-900/30 border border-blue-500/50 p-4 rounded-xl text-center w-full max-w-3xl">
+                    <p class="text-slate-300 text-sm mb-1">Seu Código de Acesso:</p>
+                    <div class="text-4xl font-mono font-bold text-blue-400 tracking-widest" id="displayCameraId">----</div>
+                    <p class="text-slate-400 text-xs mt-2"><i class="fa-solid fa-lock text-green-400"></i> Protegido por senha. Digite o código e a senha no outro dispositivo.</p>
+                </div>
+
+                <div class="video-container">
+                    <video id="localVideo" autoplay playsinline muted></video>
+                    <div id="cameraOverlay" class="absolute inset-0 flex flex-col items-center justify-center bg-slate-900/80 text-slate-400">
+                        <i class="fa-solid fa-spinner fa-spin text-4xl mb-2"></i>
+                        <p>Iniciando Câmera...</p>
+                    </div>
                 </div>
             </div>
 
@@ -126,8 +167,12 @@
             <div id="connectPanel" class="bg-slate-800 p-6 rounded-xl border border-slate-700 shadow-lg w-full max-w-md flex flex-col gap-4">
                 <h3 class="text-lg font-bold text-center">Conectar à Câmera</h3>
                 <div class="flex flex-col gap-2">
-                    <label for="inputCameraId" class="text-sm text-slate-400">Digite o Código de Acesso:</label>
+                    <label for="inputCameraId" class="text-sm text-slate-400">Código de Acesso:</label>
                     <input type="text" id="inputCameraId" class="bg-slate-900 border border-slate-600 text-white text-center text-2xl font-mono tracking-widest rounded-lg p-3 outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 transition-all" placeholder="Ex: 12345" maxlength="5">
+                </div>
+                <div class="flex flex-col gap-2">
+                    <label for="inputMonitorPassword" class="text-sm text-slate-400">Senha da Câmera:</label>
+                    <input type="password" id="inputMonitorPassword" class="bg-slate-900 border border-slate-600 text-white text-center rounded-lg p-3 outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 transition-all" placeholder="Digite a senha">
                 </div>
                 <button id="btnConnect" onclick="connectToCamera()" class="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-3 rounded-lg transition-colors flex items-center justify-center gap-2 shadow-md">
                     <i class="fa-solid fa-link"></i> Conectar
@@ -184,11 +229,90 @@
         const ID_PREFIX = "wdvr-"; 
         
         // Elementos da Interface
+        const screenLogin = document.getElementById('screenLogin');
         const screenSelection = document.getElementById('screenSelection');
         const screenCamera = document.getElementById('screenCamera');
         const screenMonitor = document.getElementById('screenMonitor');
         const statusIndicator = document.getElementById('statusIndicator');
         const statusText = document.getElementById('statusText');
+        const btnLogout = document.getElementById('btnLogout');
+
+        // Configuração PWA Dinâmica (Instalação)
+        const manifest = {
+            name: "WebDVR Remoto",
+            short_name: "WebDVR",
+            start_url: ".",
+            display: "standalone",
+            background_color: "#0f172a",
+            theme_color: "#1e293b",
+            icons: [
+                {
+                    src: "https://cdn-icons-png.flaticon.com/512/3204/3204003.png",
+                    sizes: "512x512",
+                    type: "image/png"
+                }
+            ]
+        };
+        const manifestBlob = new Blob([JSON.stringify(manifest)], { type: 'application/json' });
+        document.head.appendChild(Object.assign(document.createElement('link'), { rel: 'manifest', href: URL.createObjectURL(manifestBlob) }));
+
+        if ('serviceWorker' in navigator) {
+            const swBlob = new Blob(["self.addEventListener('install', e => self.skipWaiting()); self.addEventListener('activate', e => self.clients.claim()); self.addEventListener('fetch', e => {});"], { type: 'application/javascript' });
+            navigator.serviceWorker.register(URL.createObjectURL(swBlob)).catch(console.error);
+        }
+
+        let deferredPrompt;
+        window.addEventListener('beforeinstallprompt', (e) => {
+            e.preventDefault();
+            deferredPrompt = e;
+            const installBtn = document.getElementById('btnInstall');
+            if (installBtn) {
+                installBtn.classList.remove('hidden');
+                installBtn.addEventListener('click', async () => {
+                    installBtn.classList.add('hidden');
+                    deferredPrompt.prompt();
+                    await deferredPrompt.userChoice;
+                    deferredPrompt = null;
+                });
+            }
+        });
+
+        // Lógica de Login
+        function checkLogin() {
+            if (localStorage.getItem('isLoggedIn') === 'true') {
+                screenLogin.classList.add('hidden');
+                screenSelection.classList.remove('hidden');
+                screenSelection.classList.add('flex');
+                btnLogout.classList.remove('hidden');
+                updateStatus('Aguardando Seleção', 'bg-slate-500');
+            } else {
+                screenLogin.classList.remove('hidden');
+                screenSelection.classList.add('hidden');
+                screenSelection.classList.remove('flex');
+                btnLogout.classList.add('hidden');
+            }
+        }
+
+        function doLogin() {
+            const user = document.getElementById('loginUser').value.trim();
+            const pass = document.getElementById('loginPass').value.trim();
+            
+            if (user.toLowerCase() === 'welligton' && pass === '0205') {
+                localStorage.setItem('isLoggedIn', 'true');
+                document.getElementById('loginError').classList.add('hidden');
+                checkLogin();
+            } else {
+                document.getElementById('loginError').classList.remove('hidden');
+            }
+        }
+
+        function logout() {
+            localStorage.removeItem('isLoggedIn');
+            disconnect(); // Recarrega a página e volta pro login
+        }
+
+        // Executar checagem inicial
+        checkLogin();
 
         // Variáveis Globais WebRTC
         let peer = null;
@@ -199,12 +323,16 @@
         // Variáveis de Gravação
         let mediaRecorder = null;
         let recordedChunks = [];
+        
+        // Variável de Segurança
+        let cameraPassword = "";
 
         // ---------------------------------------------------------
         // GERENCIAMENTO DE MODO (CAMERA VS MONITOR)
         // ---------------------------------------------------------
         function selectRole(role) {
             screenSelection.classList.add('hidden');
+            screenSelection.classList.remove('flex');
             
             if (role === 'camera') {
                 screenCamera.classList.remove('hidden');
@@ -225,11 +353,23 @@
         // ---------------------------------------------------------
         // MODO CÂMERA (Transmissor)
         // ---------------------------------------------------------
-        async function initCameraMode() {
+        function initCameraMode() {
+            // Pula a etapa de configurar senha e inicia direto com senha fixa
+            document.getElementById('cameraSetupPanel').classList.add('hidden');
+            cameraPassword = "0205"; // Senha fixa do sistema
+            startCameraTransmission();
+        }
+
+        async function startCameraTransmission() {
+            // Troca a UI
+            document.getElementById('cameraSetupPanel').classList.add('hidden');
+            document.getElementById('cameraActiveArea').classList.remove('hidden');
+            document.getElementById('cameraActiveArea').classList.add('flex');
+            
             updateStatus('Iniciando Câmera...', 'bg-yellow-500');
             
+            // 1. Pega o vídeo da webcam do PC (Bloco Isolado)
             try {
-                // 1. Pega o vídeo da webcam do PC
                 localStream = await navigator.mediaDevices.getUserMedia({ 
                     video: { width: { ideal: 1280 }, height: { ideal: 720 }, facingMode: "environment" }, 
                     audio: true 
@@ -238,46 +378,73 @@
                 const localVideo = document.getElementById('localVideo');
                 localVideo.srcObject = localStream;
                 document.getElementById('cameraOverlay').classList.add('hidden');
-
-                // 2. Cria um ID aleatório de 5 dígitos
-                const shortId = Math.floor(10000 + Math.random() * 90000).toString();
-                const fullId = ID_PREFIX + shortId;
-                
-                document.getElementById('displayCameraId').textContent = shortId;
-
-                // 3. Inicia o servidor PeerJS com este ID
-                peer = new Peer(fullId);
-
-                peer.on('open', (id) => {
-                    updateStatus('Transmitindo (Aguardando monitor)', 'bg-blue-500');
-                });
-
-                // 4. Lógica de P2P: O Monitor envia uma conexão de dados primeiro
-                peer.on('connection', (conn) => {
-                    updateStatus('Monitor Conectado!', 'bg-green-500');
-                    
-                    // Quando o monitor conectar via dados, a câmera LIGA para ele enviando o vídeo.
-                    // Isso evita problemas de bloqueio de autoplay e permissão inversa.
-                    conn.on('open', () => {
-                        console.log("Conexão de dados aberta com monitor. Ligando enviando vídeo...");
-                        const call = peer.call(conn.peer, localStream);
-                        
-                        call.on('close', () => {
-                            updateStatus('Monitor Desconectado', 'bg-blue-500');
-                        });
-                    });
-                });
-
-                peer.on('error', (err) => {
-                    console.error(err);
-                    updateStatus('Erro na conexão', 'bg-red-500');
-                    alert("Erro no servidor de conexão P2P. Tente recarregar a página.");
-                });
-
             } catch (err) {
                 console.error("Erro de mídia:", err);
                 updateStatus('Erro ao acessar câmera', 'bg-red-500');
                 document.getElementById('cameraOverlay').innerHTML = `<i class="fa-solid fa-triangle-exclamation text-red-500 text-4xl mb-2"></i><p>Erro ao acessar webcam</p><p class="text-xs mt-2 text-center px-4">Verifique permissões ou se outro app está usando a câmera.</p>`;
+                return; // Interrompe se não tiver câmera
+            }
+
+            // 2. Inicia o servidor PeerJS (Isolado para tratar bloqueios do Preview)
+            try {
+                // Usa código de acesso fixo "4556"
+                const shortId = "4556";
+                const fullId = ID_PREFIX + shortId;
+                
+                document.getElementById('displayCameraId').textContent = shortId;
+
+                peer = new Peer(fullId);
+
+                peer.on('open', (id) => {
+                    updateStatus('Transmitindo (Protegido)', 'bg-blue-500');
+                });
+
+                // 4. Lógica de P2P: O Monitor envia uma conexão de dados primeiro
+                peer.on('connection', (conn) => {
+                    console.log("Tentativa de conexão. Verificando senha...");
+                    
+                    conn.on('data', (data) => {
+                        if (data.type === 'auth') {
+                            if (data.password === cameraPassword) {
+                                // Senha Correta!
+                                updateStatus('Monitor Conectado (Autenticado)!', 'bg-green-500');
+                                conn.send({ type: 'auth_success' });
+                                
+                                // Inicia a chamada de vídeo para o monitor
+                                const call = peer.call(conn.peer, localStream);
+                                call.on('close', () => {
+                                    updateStatus('Monitor Desconectado', 'bg-blue-500');
+                                });
+                            } else {
+                                // Senha Incorreta!
+                                console.warn("Acesso bloqueado: Senha incorreta.");
+                                conn.send({ type: 'auth_fail' });
+                                setTimeout(() => conn.close(), 1000);
+                            }
+                        }
+                    });
+                    
+                    conn.on('close', () => {
+                        updateStatus('Transmitindo (Aguardando monitor)', 'bg-blue-500');
+                    });
+                });
+
+                peer.on('error', (err) => {
+                    console.error("Erro PeerJS:", err);
+                    updateStatus('Erro na rede P2P', 'bg-red-500');
+                    
+                    // Tratamento específico para o erro de WebSocket no Preview
+                    if (String(err).includes('Canvas') || String(err).includes('WebSocket') || err.type === 'browser-incompatible') {
+                        document.getElementById('displayCameraId').innerHTML = '<span class="text-red-400 text-xl">Preview Bloqueado</span>';
+                        alert("O ambiente de Preview bloqueia a conexão WebRTC. A câmera ligou, mas a transmissão só funcionará no seu site hospedado!");
+                    } else {
+                        alert("Erro de conexão. Verifique sua rede.");
+                    }
+                });
+
+            } catch (err) {
+                console.error("Erro fatal ao iniciar rede:", err);
+                updateStatus('Erro ao iniciar rede', 'bg-red-500');
             }
         }
 
@@ -286,59 +453,85 @@
         // ---------------------------------------------------------
         function initMonitorMode() {
             updateStatus('Modo Monitor (Pronto)', 'bg-emerald-500');
-            // Inicializa Peer sem ID específico (ID dinâmico)
-            peer = new Peer();
+
+            // Carrega e preenche automaticamente os dados salvos ou os fixos (4556 / 0205)
+            const savedCode = localStorage.getItem('wdvr_code') || '4556';
+            const savedPass = localStorage.getItem('wdvr_pass') || '0205';
+            document.getElementById('inputCameraId').value = savedCode;
+            document.getElementById('inputMonitorPassword').value = savedPass;
             
-            peer.on('open', (id) => {
-                console.log("Monitor registrado na rede com ID:", id);
-            });
-
-            // O Monitor fica escutando chamadas (recebendo o vídeo da câmera)
-            peer.on('call', (call) => {
-                currentCall = call;
-                // Atende a chamada (não enviamos vídeo de volta)
-                call.answer();
+            try {
+                // Inicializa Peer sem ID específico (ID dinâmico)
+                peer = new Peer();
                 
-                call.on('stream', (remoteStream) => {
-                    const remoteVideo = document.getElementById('remoteVideo');
-                    remoteVideo.srcObject = remoteStream;
+                peer.on('open', (id) => {
+                    console.log("Monitor registrado na rede com ID:", id);
+                });
+
+                // O Monitor fica escutando chamadas (recebendo o vídeo da câmera)
+                peer.on('call', (call) => {
+                    currentCall = call;
+                    // Atende a chamada (não enviamos vídeo de volta)
+                    call.answer();
                     
-                    // Mostra o vídeo, esconde overlay de carregamento
-                    document.getElementById('monitorOverlay').classList.add('hidden');
-                    updateStatus('Assistindo Câmera Remota', 'bg-green-500');
+                    call.on('stream', (remoteStream) => {
+                        const remoteVideo = document.getElementById('remoteVideo');
+                        remoteVideo.srcObject = remoteStream;
+                        
+                        // Mostra o vídeo, esconde overlay de carregamento
+                        document.getElementById('monitorOverlay').classList.add('hidden');
+                        updateStatus('Assistindo Câmera Remota', 'bg-green-500');
+                        
+                        // Habilita botões se aplicável
+                        if (document.pictureInPictureEnabled) {
+                            document.getElementById('btnPip').disabled = false;
+                        }
+                    });
+
+                    call.on('close', () => {
+                        handleRemoteDisconnect();
+                    });
+                });
+
+                peer.on('error', (err) => {
+                    const errorDiv = document.getElementById('connectError');
+                    errorDiv.classList.remove('hidden');
                     
-                    // Habilita botões se aplicável
-                    if (document.pictureInPictureEnabled) {
-                        document.getElementById('btnPip').disabled = false;
+                    if(err.type === 'peer-unavailable') {
+                        errorDiv.textContent = "Câmera não encontrada. Verifique o código e se o PC está ligado com a página aberta.";
+                    } else if (String(err).includes('Canvas') || String(err).includes('WebSocket')) {
+                        errorDiv.textContent = "Erro do Preview: Conexões bloqueadas. Teste no site que você hospedou!";
+                    } else {
+                        errorDiv.textContent = "Erro de conexão: " + err.type;
                     }
+                    
+                    // Reseta interface
+                    document.getElementById('btnConnect').disabled = false;
+                    document.getElementById('btnConnect').innerHTML = '<i class="fa-solid fa-link"></i> Conectar';
+                    updateStatus('Modo Monitor (Falha)', 'bg-red-500');
                 });
-
-                call.on('close', () => {
-                    handleRemoteDisconnect();
-                });
-            });
-
-            peer.on('error', (err) => {
-                const errorDiv = document.getElementById('connectError');
-                errorDiv.classList.remove('hidden');
-                
-                if(err.type === 'peer-unavailable') {
-                    errorDiv.textContent = "Câmera não encontrada. Verifique o código e se o PC está ligado com a página aberta.";
-                } else {
-                    errorDiv.textContent = "Erro de conexão: " + err.type;
-                }
-                
-                // Reseta interface
-                document.getElementById('btnConnect').disabled = false;
-                document.getElementById('btnConnect').innerHTML = '<i class="fa-solid fa-link"></i> Conectar';
-                updateStatus('Modo Monitor (Falha)', 'bg-red-500');
-            });
+            } catch(err) {
+                 console.error("Erro ao iniciar Peer no Monitor:", err);
+            }
         }
 
         // Ação ao clicar no botão "Conectar" no Celular
         function connectToCamera() {
             const shortId = document.getElementById('inputCameraId').value.trim();
-            if (shortId.length < 4) return;
+            const monitorPassword = document.getElementById('inputMonitorPassword').value.trim();
+            
+            if (shortId.length < 4) {
+                alert("Digite o código de acesso válido.");
+                return;
+            }
+            if (!monitorPassword) {
+                alert("Digite a senha da câmera.");
+                return;
+            }
+
+            // Salva as credenciais no localStorage para não precisar digitar novamente
+            localStorage.setItem('wdvr_code', shortId);
+            localStorage.setItem('wdvr_pass', monitorPassword);
 
             const fullId = ID_PREFIX + shortId;
             const errorDiv = document.getElementById('connectError');
@@ -347,18 +540,34 @@
             // Muda UI do botão
             const btnConnect = document.getElementById('btnConnect');
             btnConnect.disabled = true;
-            btnConnect.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Procurando...';
+            btnConnect.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Autenticando...';
             updateStatus('Buscando Câmera...', 'bg-yellow-500');
 
-            // 1. Inicia conexão de dados com a câmera
+            // 1. Inicia conexão de dados com a câmera para autenticação
             activeConnection = peer.connect(fullId);
             
             activeConnection.on('open', () => {
-                // Sucesso! Esconde o painel de input e mostra a área de vídeo
-                document.getElementById('connectPanel').classList.add('hidden');
-                document.getElementById('monitorVideoArea').classList.remove('hidden');
-                document.getElementById('monitorVideoArea').classList.add('flex');
-                document.getElementById('monitorOverlayText').textContent = "Solicitando vídeo...";
+                // Envia a senha para validação
+                activeConnection.send({ type: 'auth', password: monitorPassword });
+            });
+
+            activeConnection.on('data', (data) => {
+                if (data.type === 'auth_success') {
+                    // Sucesso! Esconde o painel de input e mostra a área de vídeo
+                    document.getElementById('connectPanel').classList.add('hidden');
+                    document.getElementById('monitorVideoArea').classList.remove('hidden');
+                    document.getElementById('monitorVideoArea').classList.add('flex');
+                    document.getElementById('monitorOverlayText').textContent = "Senha correta. Recebendo vídeo...";
+                    updateStatus('Autenticado com Sucesso', 'bg-green-500');
+                } else if (data.type === 'auth_fail') {
+                    // Falha!
+                    errorDiv.textContent = "Acesso Negado: Senha Incorreta!";
+                    errorDiv.classList.remove('hidden');
+                    btnConnect.disabled = false;
+                    btnConnect.innerHTML = '<i class="fa-solid fa-link"></i> Conectar';
+                    updateStatus('Falha na Autenticação', 'bg-red-500');
+                    activeConnection.close();
+                }
             });
 
             activeConnection.on('close', () => {
@@ -477,11 +686,20 @@
             }
         }
 
-        // Permite conectar apertando Enter no input
+        // Permite conectar apertando Enter nos inputs
         document.getElementById('inputCameraId').addEventListener('keypress', function (e) {
-            if (e.key === 'Enter') {
-                connectToCamera();
-            }
+            if (e.key === 'Enter') connectToCamera();
+        });
+        document.getElementById('inputMonitorPassword').addEventListener('keypress', function (e) {
+            if (e.key === 'Enter') connectToCamera();
+        });
+
+        // Permite logar apertando Enter nos inputs de login
+        document.getElementById('loginUser').addEventListener('keypress', function (e) {
+            if (e.key === 'Enter') doLogin();
+        });
+        document.getElementById('loginPass').addEventListener('keypress', function (e) {
+            if (e.key === 'Enter') doLogin();
         });
 
     </script>
